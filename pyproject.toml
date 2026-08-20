@@ -1,0 +1,63 @@
+[project]
+name = "ssl-experiments"
+version = "0.1.0"
+description = "Reproducible orchestration and evaluation for low-label object-detection SSL studies"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "marimo>=0.20.4",
+    "matplotlib>=3.10",
+    "numpy>=2.0",
+    "opencv-python>=4.12",
+    "pillow>=11.0",
+    "polars>=1.0",
+    "pyyaml>=6.0",
+    "rich>=14.0",
+    "scikit-learn>=1.7",
+    "scipy>=1.15",
+    "torch>=2.8",
+    "torchvision>=0.23",
+    "typer>=0.16",
+    "ultralytics>=8.3",
+]
+
+[project.scripts]
+sslx = "ssl_experiments.cli:main"
+ssl-pretrain = "ssl_experiments.training.pretrain_vicreg:main"
+ssl-finetune = "ssl_experiments.training.finetune_detector:main"
+ssl-shape-benchmark = "ssl_experiments.evaluation.shape_benchmark:app"
+ssl-explain = "ssl_experiments.explainability.cli:app"
+ssl-splits = "ssl_experiments.data.splits:main"
+ssl-manifests = "ssl_experiments.data.manifests:main"
+ssl-clean-eval = "ssl_experiments.evaluation.clean:main"
+ssl-object-augment = "ssl_experiments.data.interventions.object_driven:app"
+ssl-object-crops = "ssl_experiments.data.interventions.object_centered:app"
+ssl-stylize = "ssl_experiments.data.interventions.stylize:app"
+ssl-swav-finetune = "ssl_experiments.training.swav_detector:main"
+ssl-rtdetr-finetune = "ssl_experiments.training.rtdetr_detector:main"
+
+[project.optional-dependencies]
+tracking = ["mlflow>=3.10"]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.12"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ssl_experiments"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "B"]
+ignore = ["B006"]
+
+[tool.uv]
+package = true

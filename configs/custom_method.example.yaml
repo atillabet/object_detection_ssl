@@ -1,0 +1,15 @@
+# Merge this pattern into a study's methods list for a new SSL implementation.
+- name: my_ssl
+  kind: custom
+  pretraining:
+    command:
+      - "{python}"
+      - "{project_root}/scripts/pretrain_my_ssl.py"
+      - --output
+      - "{pretrain_dir}"
+    resume_command:
+      - "{python}"
+      - "{project_root}/scripts/pretrain_my_ssl.py"
+      - --resume
+      - "{checkpoint}"
+    checkpoint: "{pretrain_dir}/latest.pt"

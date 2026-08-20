@@ -1,0 +1,20 @@
+schema_version: 1
+name: low_label_vicreg
+base_study: ../studies/low_label_vicreg.yaml
+
+axes:
+  seed: [0, 1, 2]
+  fraction: [0.01, 0.05, 0.10, 0.25]
+
+cell_name: "{matrix}_seed{seed}_{fraction_slug}"
+pretraining_group: "seed_{seed}"
+
+overrides:
+  pretraining.args.seed: "{seed}"
+  finetuning.args.seed: "{seed}"
+  finetuning.args.data: "data/splits/seed_{seed}/{fraction_slug}/data.yaml"
+  evaluations.clean_validation.data: "{project_root}/data/splits/seed_{seed}/{fraction_slug}/data.yaml"
+
+aggregate_by: [fraction]
+baseline: supervised
+report_metric: validation_map50_95

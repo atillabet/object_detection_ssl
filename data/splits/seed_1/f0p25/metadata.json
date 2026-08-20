@@ -1,0 +1,16 @@
+{
+  "fraction": 0.25,
+  "images_without_label_file": 0,
+  "label_files_present": 49911,
+  "nested_prefix_selection": true,
+  "population_images": 199642,
+  "population_manifest": "/home/dmytrob/Projects/experiments/data/splits/population.txt",
+  "population_sha256": "4cae7c5e4207760f34a78d8c6595382aa4cbfe668f2d527eb0699bce065ac759",
+  "schema_version": 1,
+  "seed": 1,
+  "selected_images": 49911,
+  "source_data_yaml": "/media/datasets/object_detection/cur_train_3_natural_disasters/data.yaml",
+  "source_data_yaml_sha256": "7110e59a79b2faceea7c37712358f394f08d70aa9fa174f7e53913a44a03d640",
+  "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_1/f0p25/train.txt",
+  "train_manifest_sha256": "43969c1c5b7c9e54d4f6161bbc26be195015ce5bed1baf5e3e077c6c831735ef"
+}

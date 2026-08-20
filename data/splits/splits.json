@@ -1,0 +1,130 @@
+{
+  "fractions": [
+    0.01,
+    0.05,
+    0.1,
+    0.25
+  ],
+  "nested_fractions_within_seed": true,
+  "population_images": 199642,
+  "population_manifest": "/home/dmytrob/Projects/experiments/data/splits/population.txt",
+  "population_sha256": "4cae7c5e4207760f34a78d8c6595382aa4cbfe668f2d527eb0699bce065ac759",
+  "schema_version": 1,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "source_data_yaml": "/media/datasets/object_detection/cur_train_3_natural_disasters/data.yaml",
+  "source_data_yaml_sha256": "7110e59a79b2faceea7c37712358f394f08d70aa9fa174f7e53913a44a03d640",
+  "splits": [
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_0/f0p01/data.yaml",
+      "fraction": 0.01,
+      "fraction_slug": "f0p01",
+      "seed": 0,
+      "selected_images": 1997,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_0/f0p01/train.txt",
+      "train_manifest_sha256": "98b82688881bcc675082625eb4242730668c79cc2ce27e88ba80b06694de048a"
+    },
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_0/f0p05/data.yaml",
+      "fraction": 0.05,
+      "fraction_slug": "f0p05",
+      "seed": 0,
+      "selected_images": 9983,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_0/f0p05/train.txt",
+      "train_manifest_sha256": "6988acf28f6109ad2d8fd8edd1a2337e4dd88209a1419db720b2a92f5ac26af3"
+    },
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_0/f0p1/data.yaml",
+      "fraction": 0.1,
+      "fraction_slug": "f0p1",
+      "seed": 0,
+      "selected_images": 19965,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_0/f0p1/train.txt",
+      "train_manifest_sha256": "88aa62e7e58348adcefd9e126a4918338a6043a4650cc860a4621b5b1d657113"
+    },
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_0/f0p25/data.yaml",
+      "fraction": 0.25,
+      "fraction_slug": "f0p25",
+      "seed": 0,
+      "selected_images": 49911,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_0/f0p25/train.txt",
+      "train_manifest_sha256": "293831d084e1d905b0fccbf4522d2b58463380633095d171394acfc157ff6d51"
+    },
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_1/f0p01/data.yaml",
+      "fraction": 0.01,
+      "fraction_slug": "f0p01",
+      "seed": 1,
+      "selected_images": 1997,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_1/f0p01/train.txt",
+      "train_manifest_sha256": "11e07459281407169d5e63fb5d4dafe18c082fecc5f86ec1fbdddddeb98ce7fc"
+    },
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_1/f0p05/data.yaml",
+      "fraction": 0.05,
+      "fraction_slug": "f0p05",
+      "seed": 1,
+      "selected_images": 9983,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_1/f0p05/train.txt",
+      "train_manifest_sha256": "d59afaade6df5b35a900a98aaef7ebd420404fa2e44bb13e6414d571b8769385"
+    },
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_1/f0p1/data.yaml",
+      "fraction": 0.1,
+      "fraction_slug": "f0p1",
+      "seed": 1,
+      "selected_images": 19965,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_1/f0p1/train.txt",
+      "train_manifest_sha256": "714bcd391c2366d53db112ebe43e85b8b86ecd58efa5eb2ab04f4c75fbb8c556"
+    },
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_1/f0p25/data.yaml",
+      "fraction": 0.25,
+      "fraction_slug": "f0p25",
+      "seed": 1,
+      "selected_images": 49911,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_1/f0p25/train.txt",
+      "train_manifest_sha256": "43969c1c5b7c9e54d4f6161bbc26be195015ce5bed1baf5e3e077c6c831735ef"
+    },
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_2/f0p01/data.yaml",
+      "fraction": 0.01,
+      "fraction_slug": "f0p01",
+      "seed": 2,
+      "selected_images": 1997,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_2/f0p01/train.txt",
+      "train_manifest_sha256": "5697c2be58082720d4f98fadb5cd958022e8a5bd11e50fcfa116ff68fb63f235"
+    },
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_2/f0p05/data.yaml",
+      "fraction": 0.05,
+      "fraction_slug": "f0p05",
+      "seed": 2,
+      "selected_images": 9983,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_2/f0p05/train.txt",
+      "train_manifest_sha256": "6597177d724a29cdb0f552259dd41d68cbc290c8cd3323edd74684cfa81ad174"
+    },
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_2/f0p1/data.yaml",
+      "fraction": 0.1,
+      "fraction_slug": "f0p1",
+      "seed": 2,
+      "selected_images": 19965,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_2/f0p1/train.txt",
+      "train_manifest_sha256": "9abf957a559ecbc93b0d2ddc04409005d75d0ee37e883e15d973fd931d4006e2"
+    },
+    {
+      "data_yaml": "/home/dmytrob/Projects/experiments/data/splits/seed_2/f0p25/data.yaml",
+      "fraction": 0.25,
+      "fraction_slug": "f0p25",
+      "seed": 2,
+      "selected_images": 49911,
+      "train_manifest": "/home/dmytrob/Projects/experiments/data/splits/seed_2/f0p25/train.txt",
+      "train_manifest_sha256": "99a2994db46a707bc58a59846faa095d8747946ca25e5e16a934577e7d7a190d"
+    }
+  ]
+}

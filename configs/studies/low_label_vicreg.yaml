@@ -1,0 +1,131 @@
+schema_version: 1
+name: low_label_vicreg_base
+hypothesis: >-
+  VICReg initialization improves detector label efficiency, and object-centered
+  view sampling changes that improvement relative to global SSL pretraining.
+
+paths:
+  project_root: ../..
+  python: ../../.venv/bin/python
+  output_root: ../../artifacts
+
+runtime:
+  gpu: 0
+
+pretraining:
+  module: ssl_experiments.training.pretrain_vicreg
+  checkpoint: latest.pt
+  args:
+    images: /media/datasets/object_detection/cur_train_3_natural_disasters/train/images
+    image_list: data/manifests/unlabeled_n50000.txt
+    labels: /media/datasets/object_detection/cur_train_3_natural_disasters/train/labels
+    model: yolo26n.yaml
+    encoder_scope: backbone
+    epochs: 100
+    batch: 128
+    imgsz: 224
+    workers: 8
+    lr: 0.001
+    weight_decay: 0.0001
+    hidden_dim: 1024
+    projection_dim: 1024
+    spatial_levels: [1]
+    seed: 0
+    amp: true
+    amp_dtype: bfloat16
+
+finetuning:
+  module: ssl_experiments.training.finetune_detector
+  args:
+    data: data/splits/seed_0/f0p01/data.yaml
+    model: yolo26n.yaml
+    epochs: 100
+    imgsz: 320
+    batch: 128
+    workers: 4
+    seed: 0
+    optimizer: AdamW
+    lr0: 0.001
+    lrf: 0.01
+    momentum: 0.937
+    weight_decay: 0.0005
+    warmup_epochs: 3.0
+    warmup_bias_lr: 0.01
+    warmup_momentum: 0.8
+    cls: 1.0
+    dfl: 2.0
+    box: 7.5
+    mosaic: 0.5
+    close_mosaic: 10
+    mixup: 0.0
+    copy_paste: 0.0
+    degrees: 5.0
+    scale: 0.3
+    translate: 0.1
+    erasing: 0.1
+    hsv_h: 0.02
+    hsv_s: 0.5
+    hsv_v: 0.4
+    patience: 30
+    cos_lr: true
+    multi_scale: false
+    val: true
+  resume_args:
+    imgsz: 320
+    batch: 128
+    workers: 4
+    patience: 30
+    val: true
+
+evaluations:
+  clean_validation:
+    enabled: true
+    module: ssl_experiments.evaluation.clean
+    data: ../../data/splits/seed_0/f0p01/data.yaml
+    args:
+      imgsz: 320
+      batch: 128
+      workers: 4
+      seed: 0
+  shape_reliance:
+    enabled: true
+    module: ssl_experiments.evaluation.shape_benchmark
+    images: /media/datasets/object_detection/cur_train_3_natural_disasters/val/images
+    labels: /media/datasets/object_detection/cur_train_3_natural_disasters/val/labels
+    args:
+      benchmark_version: v2
+      severities: 0.25,0.5,0.75
+      imgsz: 320
+      conf: 0.001
+      nms_iou: 0.7
+      match_iou: 0.5
+      paired_conf: 0.25
+      batch_size: 16
+      no_sahi: true
+      max_images: 1000
+      random_sample: true
+      preview_images: 5
+      shape_grid: 4
+      seed: 0
+      edge_diagnostic: true
+  custom: []
+
+methods:
+  - name: supervised
+    kind: supervised
+
+  - name: global_vicreg
+    kind: vicreg_global
+
+  - name: object_vicreg
+    kind: vicreg_object
+
+  - name: mixed_vicreg
+    kind: vicreg_mixed
+    pretraining:
+      args:
+        object_probability: 0.75
+
+analysis:
+  baseline: supervised
+  criteria: []

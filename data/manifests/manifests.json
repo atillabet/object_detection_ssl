@@ -1,0 +1,27 @@
+{
+  "batch": 128,
+  "manifests": [
+    {
+      "epochs": 100,
+      "images": 50000,
+      "manifest": "/home/dmytrob/Projects/experiments/data/manifests/unlabeled_n50000.txt",
+      "manifest_sha256": "469eafb8a5ac408f452cc0c9a74767a32271259a6694e5555cb5ae937e9c8df3",
+      "optimizer_steps": 39000,
+      "steps_per_epoch_drop_last": 390
+    },
+    {
+      "epochs": 50,
+      "images": 100000,
+      "manifest": "/home/dmytrob/Projects/experiments/data/manifests/unlabeled_n100000.txt",
+      "manifest_sha256": "30ae1f4ceba0ee1ef75aa4136765d36cc4db33080f69576d101bb026a557a07a",
+      "optimizer_steps": 39050,
+      "steps_per_epoch_drop_last": 781
+    }
+  ],
+  "nested_prefix_selection": true,
+  "population_images": 199642,
+  "population_manifest": "/home/dmytrob/Projects/experiments/data/splits/population.txt",
+  "population_sha256": "4cae7c5e4207760f34a78d8c6595382aa4cbfe668f2d527eb0699bce065ac759",
+  "schema_version": 1,
+  "selection_seed": 0
+}
