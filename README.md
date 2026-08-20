@@ -1,4 +1,4 @@
-# SSL Experiments
+# Object Detection SSL
 
 Standalone research framework for reproducible low-label object-detection SSL studies.
 It owns the VICReg implementations, detector fine-tuning, shape-reliance benchmark,
