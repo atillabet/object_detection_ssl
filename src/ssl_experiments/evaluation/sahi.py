@@ -10,6 +10,8 @@ def slice_image(image, slice_wh, overlap_wh):
     overlap_w, overlap_h = overlap_wh
     step_w = slice_w - overlap_w
     step_h = slice_h - overlap_h
+    if min(slice_w, slice_h, step_w, step_h) <= 0 or min(overlap_wh) < 0:
+        raise ValueError("Slice sizes must be positive and overlaps smaller than slices")
 
     slices = []
     for y in range(0, h, step_h):
@@ -85,6 +87,7 @@ def sahi_inference_batched(
             verbose=False,
             half=half,
             device=device,
+            iou=iou_threshold,
         )
 
         # Collect detections with offsets (vectorised per tile)
@@ -104,6 +107,8 @@ def sahi_inference_batched(
             xyxy[:, 2] += x_offset
             xyxy[:, 1] += y_offset
             xyxy[:, 3] += y_offset
+            xyxy[:, [0, 2]] = np.clip(xyxy[:, [0, 2]], 0, image.shape[1])
+            xyxy[:, [1, 3]] = np.clip(xyxy[:, [1, 3]], 0, image.shape[0])
 
             bw = xyxy[:, 2] - xyxy[:, 0]
             bh = xyxy[:, 3] - xyxy[:, 1]
@@ -111,7 +116,7 @@ def sahi_inference_batched(
 
             # Adaptive confidence filter (vectorised)
             min_confs = np.where(max_dim >= size_threshold, large_conf, conf)
-            keep = scores >= min_confs
+            keep = (scores >= min_confs) & (bw > 0) & (bh > 0)
 
             all_boxes.extend(xyxy[keep].tolist())
             all_scores.extend(scores[keep].tolist())
@@ -122,14 +127,20 @@ def sahi_inference_batched(
 
     # NMS to merge overlapping detections
     boxes_for_nms = [[b[0], b[1], b[2] - b[0], b[3] - b[1]] for b in all_boxes]
-    indices = cv2.dnn.NMSBoxes(
-        boxes_for_nms, all_scores, score_threshold=0.0, nms_threshold=iou_threshold
-    )
+    # Different classes must not suppress one another across tile boundaries.
+    indices = []
+    for class_id in sorted(set(all_classes)):
+        members = [i for i, value in enumerate(all_classes) if value == class_id]
+        kept = cv2.dnn.NMSBoxes(
+            [boxes_for_nms[i] for i in members], [all_scores[i] for i in members],
+            score_threshold=0.0, nms_threshold=iou_threshold,
+        )
+        indices.extend(members[int(i)] for i in np.asarray(kept).reshape(-1))
 
     if len(indices) == 0:
         return [], [], []
 
-    indices = indices.flatten()
+    indices.sort(key=lambda i: all_scores[i], reverse=True)
     final_boxes = [all_boxes[i] for i in indices]
     final_scores = [all_scores[i] for i in indices]
     final_classes = [all_classes[i] for i in indices]

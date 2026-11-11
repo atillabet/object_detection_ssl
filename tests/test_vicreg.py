@@ -187,7 +187,12 @@ class ObjectCentricDatasetTests(unittest.TestCase):
             labels.mkdir(parents=True)
             backing.mkdir()
             Image.new("RGB", (64, 64)).save(backing / "sample.png")
-            (images / "sample.png").symlink_to(backing / "sample.png")
+            try:
+                (images / "sample.png").symlink_to(backing / "sample.png")
+            except OSError as error:
+                if getattr(error, "winerror", None) == 1314:
+                    self.skipTest("Windows symlink privilege is not enabled")
+                raise
             (labels / "sample.txt").write_text("0 0.5 0.5 0.5 0.5\n")
             manifest = root / "images.txt"
             manifest.write_text(f"{images / 'sample.png'}\n")

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import csv
-import fcntl
 import json
+import os
 import subprocess
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
@@ -123,23 +123,19 @@ class Pipeline:
             required.append(self.config.resolve_path(clean["data"]))
             if clean.get("script"):
                 required.append(script_path(self.config, str(clean["script"])))
-        pretrain_args = resolve_project_argument_paths(
-            self.config,
-            self.config.pretraining.get("args", {}),
-            ("images", "image_list", "labels"),
-        )
-        required.extend(
-            Path(pretrain_args[key])
-            for key in ("images", "image_list", "labels")
-            if pretrain_args.get(key)
-        )
-        finetune_args = resolve_project_argument_paths(
-            self.config,
-            self.config.finetuning.get("args", {}),
-            ("data",),
-        )
-        if finetune_args.get("data"):
-            required.append(Path(finetune_args["data"]))
+        for method in self.config.methods:
+            if method.kind not in {"supervised", "custom"}:
+                pretrain_args = resolve_project_argument_paths(
+                    self.config, self.config.merged_pretraining(method).get("args", {}),
+                    ("images", "image_list", "labels"),
+                )
+                required.extend(Path(pretrain_args[key]) for key in ("images", "image_list", "labels")
+                                if pretrain_args.get(key))
+            finetune_args = resolve_project_argument_paths(
+                self.config, self.config.merged_finetuning(method).get("args", {}), ("data",),
+            )
+            if finetune_args.get("data"):
+                required.append(Path(finetune_args["data"]))
         missing = [path for path in required if not path.exists()]
         if missing:
             raise FileNotFoundError("Missing required paths:\n" + "\n".join(map(str, missing)))
@@ -189,9 +185,28 @@ class Pipeline:
     def lock(self) -> Iterator[None]:
         path = self.config.artifact_root / "study.lock"
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w") as stream:
-            fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            yield
+        with path.open("a+b") as stream:
+            try:
+                if os.name == "nt":
+                    import msvcrt
+                    if stream.seek(0, 2) == 0:
+                        stream.write(b"\0")
+                        stream.flush()
+                    stream.seek(0)
+                    msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError as error:
+                raise RuntimeError(f"Study is already locked: {path}") from error
+            try:
+                yield
+            finally:
+                if os.name == "nt":
+                    stream.seek(0)
+                    msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    fcntl.flock(stream, fcntl.LOCK_UN)
 
     def record_complete(self, command: StageCommand, started: str, finished: str) -> None:
         if self.dry_run:

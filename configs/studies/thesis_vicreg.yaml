@@ -1,0 +1,100 @@
+schema_version: 1
+name: thesis_vicreg
+hypothesis: >-
+  Evaluate the complete opposed-view VICReg training scheme against supervised
+  and standard VICReg controls. Fine-tuning augmentation differs, so this does
+  not isolate the causal effect of paired-view construction.
+
+paths:
+  project_root: ../..
+  python: ${SSL_PYTHON}
+  output_root: ../../artifacts
+runtime:
+  gpu: 0
+
+# Paths must point to the actual prepared training data, not validation frames.
+# Hyperparameters below are a configurable new recipe, not recovered run metadata.
+pretraining:
+  module: ssl_experiments.training.pretrain_vicreg
+  checkpoint: latest.pt
+  args:
+    images: ${THESIS_TRAIN_IMAGES}
+    labels: ${THESIS_TRAIN_LABELS}
+    model: yolo26n.pt
+    encoder_scope: backbone
+    spatial_levels: [1]
+    epochs: 100
+    batch: 128
+    imgsz: 320
+    workers: 4
+    seed: 0
+    shape_loss_weight: 0.0
+    auxiliary_shape_probability: 0.0
+    shape_view_probability: 0.0
+
+finetuning:
+  module: ssl_experiments.training.finetune_detector
+  args:
+    data: ${THESIS_TRAIN_DATA}
+    model: yolo26n.pt
+    epochs: 100
+    imgsz: 320
+    batch: 128
+    workers: 4
+    seed: 0
+    augmentation_profile: yolo_default
+  resume_args:
+    imgsz: 320
+    batch: 128
+    workers: 4
+
+# The joint evaluator below replaces independent per-model behavior reports.
+evaluations:
+  custom: []
+
+methods:
+  - name: baseline
+    kind: supervised
+  - name: standard_vicreg
+    kind: vicreg_global
+    finetuning:
+      args:
+        freeze_backbone: true
+      resume_args:
+        freeze_backbone: true
+  - name: improved_vicreg
+    kind: vicreg_opposed
+    finetuning:
+      args:
+        # Materialize the custom augmentation dataset before launching training.
+        data: ${THESIS_IMPROVED_DATA}
+        augmentation_profile: prepared
+        freeze_backbone: true
+      resume_args:
+        freeze_backbone: true
+        augmentation_profile: prepared
+
+thesis_evaluation:
+  validation:
+    images: ${THESIS_VAL_IMAGES}
+    labels: ${THESIS_VAL_LABELS}
+  objectness:
+    images: ${THESIS_OBJECTNESS_IMAGES}
+    labels: ${THESIS_OBJECTNESS_LABELS}
+    expected_images: 2000
+  severities: [0.25, 0.50, 0.75]
+  seed: 0
+  inference:
+    tile_size: 320
+    overlap: 64
+    imgsz: 320
+    batch_size: 16
+    confidence_floor: 0.001
+    nms_iou: 0.7
+    match_iou: 0.5
+    device: "0"
+    half: false
+
+analysis:
+  baseline: baseline
+  criteria: []

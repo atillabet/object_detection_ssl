@@ -18,6 +18,7 @@ BUILTIN_METHODS = {
     "vicreg_global",
     "vicreg_object",
     "vicreg_mixed",
+    "vicreg_opposed",
     "vicreg_shape_uniform",
     "vicreg_shape_region",
     "vicreg_shape_mismatched",

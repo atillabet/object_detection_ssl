@@ -65,7 +65,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--center-jitter", type=float, default=0.1)
     parser.add_argument(
         "--view-pairing",
-        choices=("independent", "aligned"),
+        choices=("independent", "aligned", "opposed"),
         default="independent",
     )
     parser.add_argument("--shape-view-probability", type=float, default=0.0)
@@ -162,6 +162,11 @@ def seed_worker(_worker_id: int) -> None:
 
 
 def validate_args(args: argparse.Namespace) -> None:
+    if args.view_pairing == "opposed" and (
+        args.shape_loss_weight != 0 or args.shape_view_probability != 0
+        or args.auxiliary_shape_probability != 0 or args.spatial_levels != [1]
+    ):
+        raise ValueError("Opposed views require ordinary global VICReg without auxiliary losses")
     if args.epochs < 1:
         raise ValueError("--epochs must be positive")
     if args.batch < 2:
@@ -344,7 +349,7 @@ def main() -> None:
     amp_enabled = args.amp and device.type == "cuda"
     autocast_dtype = torch.bfloat16 if args.amp_dtype == "bfloat16" else torch.float16
 
-    labels = None if args.sampling == "global" else Path(args.labels)
+    labels = Path(args.labels) if args.sampling != "global" or args.view_pairing == "opposed" else None
     dataset = ObjectCentricDataset(
         Path(args.images),
         image_list=Path(args.image_list) if args.image_list is not None else None,

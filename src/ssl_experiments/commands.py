@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -43,7 +44,7 @@ def resolve_project_argument_paths(
     resolved = dict(args)
     for key in keys:
         if key in resolved and resolved[key] is not None:
-            value = Path(str(resolved[key])).expanduser()
+            value = Path(os.path.expandvars(str(resolved[key]))).expanduser()
             resolved[key] = str(
                 value if value.is_absolute() else (config.project_root / value).resolve()
             )
@@ -134,6 +135,8 @@ def _builtin_ssl_args(kind: str) -> dict[str, Any]:
         return {"sampling": "object"}
     if kind == "vicreg_mixed":
         return {"sampling": "mixed", "object_probability": 0.75}
+    if kind == "vicreg_opposed":
+        return {"sampling": "global", "view_pairing": "opposed"}
     result = {"sampling": "global", **SHAPE_DEFAULTS}
     if kind == "vicreg_shape_uniform":
         result.update(shape_region_weighting="uniform", shape_pairing="aligned")

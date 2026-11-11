@@ -9,7 +9,7 @@ from ssl_experiments.config import load_study
 from ssl_experiments.pipeline import Pipeline
 
 
-PRETRAIN_SCRIPT = r'''
+PRETRAIN_SCRIPT = r"""
 import argparse
 from pathlib import Path
 
@@ -22,9 +22,9 @@ run = Path(args.output) / args.name
 run.mkdir(parents=True, exist_ok=True)
 (run / "latest.pt").write_text("checkpoint")
 (run / "metrics.jsonl").write_text("".join("{}\n" for _ in range(args.epochs)))
-'''
+"""
 
-FINETUNE_SCRIPT = r'''
+FINETUNE_SCRIPT = r"""
 import argparse
 from pathlib import Path
 
@@ -40,9 +40,9 @@ run = Path(args.project) / args.name
 rows = ["epoch,metrics/mAP50(B),metrics/mAP50-95(B)"]
 rows.extend(f"{epoch},0.2,0.1" for epoch in range(1, args.epochs + 1))
 (run / "results.csv").write_text("\n".join(rows) + "\n")
-'''
+"""
 
-EVALUATION_SCRIPT = r'''
+EVALUATION_SCRIPT = r"""
 import argparse
 import json
 from pathlib import Path
@@ -55,10 +55,42 @@ args, _ = parser.parse_known_args()
 run = Path(args.output) / args.run_name
 run.mkdir(parents=True, exist_ok=True)
 (run / "report.json").write_text(json.dumps({"ok": True}))
-'''
+"""
 
 
 class PipelineTests(unittest.TestCase):
+    def test_validate_paths_checks_method_specific_dataset(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = load_study(
+                write_study(
+                    Path(directory),
+                    methods=[
+                        {
+                            "name": "supervised",
+                            "kind": "supervised",
+                            "finetuning": {
+                                "args": {"data": "missing_custom_data.yaml"}
+                            },
+                        }
+                    ],
+                )
+            )
+            with self.assertRaisesRegex(FileNotFoundError, "missing_custom_data"):
+                Pipeline(config).validate_paths()
+
+    def test_lock_blocks_concurrent_owner_and_releases_after_exception(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = load_study(write_study(Path(directory)))
+            first, second = Pipeline(config), Pipeline(config)
+            with self.assertRaisesRegex(ValueError, "release"):
+                with first.lock():
+                    with self.assertRaisesRegex(RuntimeError, "already locked"):
+                        with second.lock():
+                            self.fail("Second owner acquired the study lock")
+                    raise ValueError("release")
+            with second.lock():
+                pass
+
     def test_pipeline_runs_all_stages_and_records_resumable_state(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -89,9 +121,15 @@ class PipelineTests(unittest.TestCase):
                 ],
             )
             self.assertTrue((config.artifact_root / "study.json").is_file())
-            self.assertTrue((config.artifact_root / "state/global/pretrain.json").is_file())
-            self.assertTrue((config.artifact_root / "state/global/finetune.json").is_file())
-            self.assertTrue((config.artifact_root / "state/global/shape_reliance.json").is_file())
+            self.assertTrue(
+                (config.artifact_root / "state/global/pretrain.json").is_file()
+            )
+            self.assertTrue(
+                (config.artifact_root / "state/global/finetune.json").is_file()
+            )
+            self.assertTrue(
+                (config.artifact_root / "state/global/shape_reliance.json").is_file()
+            )
 
 
 if __name__ == "__main__":

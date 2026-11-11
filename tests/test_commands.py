@@ -75,8 +75,8 @@ class CommandTests(unittest.TestCase):
             rendered = " ".join(commands[0].command)
 
         self.assertIn("--run-name region", rendered)
-        self.assertIn("weights/best.pt", rendered)
-        self.assertTrue(str(commands[0].completion).endswith("region/report.json"))
+        self.assertIn(str(Path("weights") / "best.pt"), rendered)
+        self.assertEqual(commands[0].completion.parts[-2:], ("region", "report.json"))
 
     def test_clean_validation_is_a_first_class_evaluator(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -113,7 +113,7 @@ class CommandTests(unittest.TestCase):
                 ("data",),
             )
 
-        self.assertEqual(args["data"], str(config.project_root / "data.yaml"))
+        self.assertEqual(Path(args["data"]).resolve(), (config.project_root / "data.yaml").resolve())
         self.assertEqual(args["model"], "yolo26n.yaml")
 
 

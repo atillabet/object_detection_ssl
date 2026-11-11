@@ -66,6 +66,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--freeze", type=int, default=None, help="How many early layers to freeze."
     )
+    parser.add_argument("--freeze-backbone", action=argparse.BooleanOptionalAction, default=False,
+                        help="Freeze every backbone layer, including BatchNorm running statistics.")
     parser.add_argument("--lr0", type=float, default=0.001)
     parser.add_argument("--lrf", type=float, default=0.01)
     parser.add_argument("--momentum", type=float, default=0.937)
@@ -80,6 +82,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--close-mosaic", type=int, default=10)
     parser.add_argument("--mixup", type=float, default=0.0)
     parser.add_argument("--copy-paste", type=float, default=0.0)
+    parser.add_argument("--augmentation-profile", choices=("configured", "yolo_default", "prepared"),
+                        default="configured", help="Use explicit settings, stock YOLO, or a prepared custom dataset.")
     parser.add_argument("--degrees", type=float, default=5.0)
     parser.add_argument("--scale", type=float, default=0.3)
     parser.add_argument("--translate", type=float, default=0.1)
@@ -164,6 +168,26 @@ def make_ssl_transfer_verifier(checkpoint_path: str):
     return verify
 
 
+def make_backbone_freezer(layer_count: int):
+    def freeze(trainer) -> None:
+        model = getattr(trainer.model, "module", trainer.model)
+        for layer in list(model.model.children())[:layer_count]:
+            layer.requires_grad_(False)
+            layer.eval()
+    return freeze
+
+
+def configure_augmentations(kwargs: dict, profile: str) -> None:
+    keys = ("mosaic", "close_mosaic", "mixup", "copy_paste", "degrees", "scale",
+            "translate", "erasing", "hsv_h", "hsv_s", "hsv_v")
+    if profile == "yolo_default":
+        for key in keys:
+            kwargs.pop(key, None)
+    elif profile == "prepared":
+        for key in (*keys, "fliplr", "flipud", "shear", "perspective", "bgr"):
+            kwargs[key] = 0
+
+
 def main() -> None:
     args = parse_args()
     configure_mlflow(args)
@@ -172,6 +196,14 @@ def main() -> None:
         raise ValueError("--resume and --ssl-checkpoint cannot be used together")
 
     model = YOLO(str(args.resume.resolve()) if args.resume else args.model)
+    if args.freeze_backbone:
+        layer_count = len(model.model.yaml["backbone"])
+        if args.freeze is not None and args.freeze != layer_count:
+            raise ValueError("--freeze conflicts with --freeze-backbone")
+        args.freeze = layer_count
+        freezer = make_backbone_freezer(layer_count)
+        for event in ("on_pretrain_routine_end", "on_train_epoch_start", "on_train_batch_start"):
+            model.add_callback(event, freezer)
     if args.ssl_checkpoint and not args.resume:
         report = load_ssl_backbone(model, args.ssl_checkpoint, strict=True)
         model.ckpt = {"ssl_checkpoint": str(Path(args.ssl_checkpoint).resolve())}
@@ -226,6 +258,7 @@ def main() -> None:
     }
     if args.name:
         train_kwargs["name"] = args.name
+    configure_augmentations(train_kwargs, args.augmentation_profile)
     if args.freeze is not None:
         train_kwargs["freeze"] = args.freeze
     if args.resume:

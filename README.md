@@ -4,6 +4,10 @@ Standalone research framework for reproducible low-label object-detection SSL st
 It owns the VICReg implementations, detector fine-tuning, shape-reliance benchmark,
 study orchestration, exact data manifests, metrics, and statistical comparisons.
 
+For the military-equipment thesis scheme, start with the separate
+[thesis protocol](docs/research/thesis_protocol.md) and `thesis_vicreg.yaml`.
+The low-label and auxiliary-contour studies below are different experiments.
+
 ## What is included
 
 - Declarative YAML studies and Cartesian experiment matrices.
@@ -15,6 +19,7 @@ study orchestration, exact data manifests, metrics, and statistical comparisons.
 - Robustness, calibration, dataset-audit, and failure-clustering reports.
 - Built-in methods: supervised; global, object, and mixed VICReg; uniform-contour,
   contour-region, and mismatched-contour VICReg controls.
+- Opposed-view VICReg with an unchanged objective and a joint common-target evaluator.
 - Custom SSL commands and custom evaluators through tokenized command templates.
 - Physical GPU pinning with logical device remapping.
 - Sequential, resumable pretraining, fine-tuning, and evaluation stages.
@@ -27,7 +32,7 @@ study orchestration, exact data manifests, metrics, and statistical comparisons.
 ## Setup
 
 ```bash
-cd /home/dmytrob/Projects/experiments
+cd object_detection_ssl
 uv sync --dev
 uv run sslx validate configs/studies/shape_region_1pct.yaml
 ```
@@ -265,6 +270,11 @@ and recall-based reliance. Exact mAP intervals require confidence-ranked predict
 which the current benchmark does not retain.
 
 ## Research notes
+
+The separate [thesis recipe](docs/research/thesis_protocol.md) provides COCO
+initialization, a frozen-backbone opposed-view VICReg scheme, and joint SAHI
+evaluation with validation-selected thresholds and targets shared by all models.
+It is a new implementation of the documented scheme, not recovered historical code.
 
 - `docs/research/experiment_design.md`: hypothesis, controls, and interpretation.
 - `docs/research/object_centric_ssl.md`: label-guided object-view experiment.

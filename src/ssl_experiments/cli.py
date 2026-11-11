@@ -53,6 +53,11 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap.add_argument("--samples", type=int, default=5000)
     bootstrap.add_argument("--seed", type=int, default=0)
 
+    thesis = subparsers.add_parser("thesis-evaluate")
+    thesis.add_argument("study", type=Path)
+    thesis.add_argument("--phase", choices=("all", "calibration", "objectness"), default="all")
+    thesis.add_argument("--overwrite", action="store_true")
+
     for name in ("matrix-plan", "matrix-status", "matrix-analyze"):
         command = subparsers.add_parser(name)
         command.add_argument("matrix", type=Path)
@@ -106,6 +111,10 @@ def plan(study: Path, methods: tuple[str, ...] | None, stages: tuple[str, ...]) 
 def main(argv: list[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
     try:
+        if args.command == "thesis-evaluate":
+            from ssl_experiments.evaluation.thesis import run_study
+            print(run_study(args.study, args.phase, args.overwrite))
+            return
         if args.command == "bootstrap":
             result = paired_bootstrap(
                 args.left,

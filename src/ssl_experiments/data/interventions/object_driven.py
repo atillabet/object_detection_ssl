@@ -13,7 +13,7 @@ from typing import Annotated, Iterable
 import numpy as np
 import typer
 import yaml
-from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 from rich.console import Console
 from rich.table import Table
 
@@ -174,6 +174,28 @@ def ensure_empty_dir(path: Path, overwrite: bool) -> None:
             raise FileExistsError(f"{path} already exists. Use --overwrite to replace it.")
         shutil.rmtree(path)
     path.mkdir(parents=True, exist_ok=True)
+
+
+def validate_output_path(output: Path, source_paths: Iterable[Path]) -> None:
+    """Reject overwriting a source or a directory containing a source."""
+    destination = output.expanduser().resolve()
+    for source in source_paths:
+        source = source.expanduser().resolve()
+        if source == destination or destination in source.parents:
+            raise ValueError(f"Output {destination} contains source data: {source}")
+
+
+def feather_mask(size: tuple[int, int]) -> Image.Image:
+    """Make a genuinely nonuniform alpha mask with a soft border."""
+    width, height = size
+    if min(size) < 3:
+        return Image.new("L", size, 255)
+    feather = min(max(1, round(min(size) * 0.04)), (min(size) - 1) // 2)
+    alpha = Image.new("L", size, 0)
+    ImageDraw.Draw(alpha).rectangle(
+        (feather, feather, width - feather - 1, height - feather - 1), fill=255
+    )
+    return alpha.filter(ImageFilter.GaussianBlur(radius=max(0.5, feather / 2)))
 
 
 def symlink_or_copy(src: Path, dst: Path, *, copy_files: bool) -> None:
@@ -361,13 +383,12 @@ def paste_object(
     obj_box = rng.choice(object_sample.boxes)
     crop = crop_with_margin(obj_box, object_sample.width, object_sample.height, crop_margin)
     crop_x1, crop_y1, crop_x2, crop_y2 = crop
-    obj_in_crop = Box(
-        obj_box.class_id,
-        obj_box.x1 - crop_x1,
-        obj_box.y1 - crop_y1,
-        obj_box.x2 - crop_x1,
-        obj_box.y2 - crop_y1,
-    )
+    # The RGB rectangle can contain other targets, including partial targets.
+    # Carry every visible annotation with the pasted pixels.
+    crop_boxes = [
+        clipped for box in object_sample.boxes
+        if (clipped := clip_box_to_crop(box, crop)) is not None
+    ]
 
     with Image.open(object_sample.image_path) as src_img, Image.open(background_sample.image_path) as bg_img:
         patch = src_img.convert("RGB").crop(crop)
@@ -383,32 +404,32 @@ def paste_object(
         new_w = max(1, int(round(patch.width * scale)))
         new_h = max(1, int(round(patch.height * scale)))
 
-    pasted_box_w = obj_in_crop.width * scale
-    pasted_box_h = obj_in_crop.height * scale
+    scale_x = new_w / (crop_x2 - crop_x1)
+    scale_y = new_h / (crop_y2 - crop_y1)
+    pasted_box_w = obj_box.width * scale_x
+    pasted_box_h = obj_box.height * scale_y
     if pasted_box_w < min_box_size or pasted_box_h < min_box_size:
         return None
 
     patch = patch.resize((new_w, new_h), Image.Resampling.BILINEAR)
-    alpha = Image.new("L", patch.size, 255)
-    feather = max(1, int(round(min(patch.size) * 0.04)))
-    alpha = alpha.filter(ImageFilter.GaussianBlur(radius=feather))
+    alpha = feather_mask(patch.size)
 
     existing = list(background_sample.boxes)
     for _ in range(attempts):
         px = rng.randint(0, max(0, background_sample.width - new_w))
         py = rng.randint(0, max(0, background_sample.height - new_h))
-        pasted_box = Box(
-            obj_box.class_id,
-            px + obj_in_crop.x1 * scale,
-            py + obj_in_crop.y1 * scale,
-            px + obj_in_crop.x2 * scale,
-            py + obj_in_crop.y2 * scale,
-        )
-        if pasted_box.x2 > background_sample.width or pasted_box.y2 > background_sample.height:
+        pasted_boxes = [Box(
+            box.class_id,
+            px + box.x1 * scale_x, py + box.y1 * scale_y,
+            px + box.x2 * scale_x, py + box.y2 * scale_y,
+        ) for box in crop_boxes]
+        if any(box.x2 > background_sample.width or box.y2 > background_sample.height
+               for box in pasted_boxes):
             continue
-        if all(box_iou(pasted_box, box) <= max_iou for box in existing):
+        if all(box_iou(pasted, box) <= max_iou
+               for pasted in pasted_boxes for box in existing):
             bg.paste(patch, (px, py), alpha)
-            return bg, existing + [pasted_box]
+            return bg, existing + pasted_boxes
     return None
 
 
@@ -460,6 +481,14 @@ def generate_dataset(
     if not dataset_root.is_absolute():
         dataset_root = (source_root / dataset_root).resolve()
 
+    sources = [source_yaml, dataset_root]
+    for split in ("train", "val", "test"):
+        for images_dir in split_image_dirs(dataset_root, config, split):
+            label_dir = label_dir_for_images(images_dir)
+            sources.extend((images_dir, label_dir))
+            if any(output.resolve().is_relative_to(source.resolve()) for source in (images_dir, label_dir)):
+                raise ValueError("Output must not be inside a source image or label directory")
+    validate_output_path(output, sources)
     ensure_empty_dir(output, overwrite=overwrite)
     train_samples = collect_samples(dataset_root, config, "train", max_samples=max_source_scan)
     if not train_samples:
@@ -583,7 +612,9 @@ def generate_dataset(
     else:
         for split in ("val", "test"):
             if split in config:
-                output_config[split] = config[split]
+                paths = split_image_dirs(dataset_root, config, split)
+                resolved = [str(path.resolve()) for path in paths]
+                output_config[split] = resolved if isinstance(config[split], list) else resolved[0]
 
     (output / "data.yaml").write_text(yaml.safe_dump(output_config, sort_keys=False))
 

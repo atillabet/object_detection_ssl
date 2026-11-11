@@ -15,9 +15,11 @@ from torchvision import transforms
 from torchvision.transforms import functional as TF
 from ultralytics import YOLO
 
+from ssl_experiments.methods.opposed_views import OpposedViewTransform
+
 IMAGE_SUFFIXES = {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 SamplingMode = Literal["global", "object", "mixed"]
-ViewPairing = Literal["independent", "aligned"]
+ViewPairing = Literal["independent", "aligned", "opposed"]
 
 
 def lexical_absolute(path: Path) -> Path:
@@ -249,7 +251,7 @@ class ObjectCentricDataset(
     ) -> None:
         if sampling not in {"global", "object", "mixed"}:
             raise ValueError(f"Unsupported sampling mode: {sampling}")
-        if sampling != "global" and labels is None:
+        if (sampling != "global" or view_pairing == "opposed") and labels is None:
             raise ValueError(f"labels are required for {sampling} sampling")
         if not 0.0 <= object_probability <= 1.0:
             raise ValueError("object_probability must be in [0, 1]")
@@ -257,7 +259,7 @@ class ObjectCentricDataset(
             raise ValueError("image_size must be at least 32")
         if context_scale[0] < 1.0 or context_scale[1] < context_scale[0]:
             raise ValueError("context_scale must be ordered and start at 1 or greater")
-        if view_pairing not in {"independent", "aligned"}:
+        if view_pairing not in {"independent", "aligned", "opposed"}:
             raise ValueError(f"Unsupported view pairing: {view_pairing}")
         if not 0.0 <= shape_view_probability <= 1.0:
             raise ValueError("shape_view_probability must be in [0, 1]")
@@ -282,6 +284,7 @@ class ObjectCentricDataset(
         self.object_transform = _view_transform(image_size, random_crop=False)
         self.appearance_transform = _appearance_transform(image_size)
         self.shape_transform = ShapeDominantTransform()
+        self.opposed_transform = OpposedViewTransform(image_size)
 
         if image_list is None:
             image_paths = sorted(
@@ -355,6 +358,8 @@ class ObjectCentricDataset(
             if self.labels_root is not None
             else []
         )
+        if self.view_pairing == "opposed":
+            return self.opposed_transform(image, boxes)
         if self._use_object_view(boxes):
             box = random.choice(boxes)
             first_source = crop_around_box(
